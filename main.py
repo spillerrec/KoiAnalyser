@@ -60,6 +60,115 @@ def parseCustom(data):
 	block3 = msgpack.unpackb( f.read(read32u(f)) )
 	return (block1, block2, block3)
 	
+def strRgb(values):
+	r,g,b,a = values
+	return '%3d,%3d,%3d' % (int(r*255), int(g*255), int(b*255))
+def strRgba(values):
+	r,g,b,a = values
+	return '%3d,%3d,%3d,%3d' % (int(r*255), int(g*255), int(b*255), int(a*255))
+	
+def summerizeParameters(para):
+	print('Name: %s %s  (%s)' % (para['firstname'], para['lastname'], para['nickname']))
+	print('Birthday: %d/%d (month/date)' % (para['birthDay'], para['birthMonth']))
+	bloodtypes = ['A', 'B', 'O', 'AB']
+	print('Bloodtype: %s' % (bloodtypes[para['bloodType']]))
+	
+def summerizeCoordinateSub(para):
+	part1, part2, unknown, extras = para
+	
+	names = ['Top   ', 'Bottom', 'Bra   ', 'Underwear', 'Gloves', 'Pantyhose', 'Legwear', 'In Shoes', 'Out Shoes']
+	
+	for info, name in zip(part1['parts'], names):
+		colors = list([strRgb(color['baseColor']) for color in info['colorInfo']])
+		print('   %s\t- id %d - %s' % (name, info['id'], str(colors)))
+		
+		
+	print('   Accessories:')
+	for index, part in enumerate(part2['parts']):
+		id = part['id']
+		if id != 0:
+			print('      %2d: id %4d - type %d' % (index, part['id'], part['type']))
+	
+def summerizeCoordinate(para):
+	names = ['In School', 'Going Home', 'Gym Uniform', 'Swimsuit', 'Club Activities', 'Casual Clothes', 'Sleeping Over']
+	
+	for name, subPara in zip(names, para):
+		print(name)
+		summerizeCoordinateSub(subPara)
+		
+def summerizeCustom(para):
+	face, body, extra = para
+	print('General:')
+	print('   Body Height:      %3d' %(int(round(body['shapeValueBody'][ 0] * 100))))
+	print('   Head Size:        %3d' %(int(round(body['shapeValueBody'][ 1] * 100))))
+	print('   Neck Width:       %3d' %(int(round(body['shapeValueBody'][ 2] * 100))))
+	print('   Neck Thickness:   %3d' %(int(round(body['shapeValueBody'][ 3] * 100))))
+	print('   Skin Type:        %3d' %(body['detailId']))
+	print('   Skin Strenght:    %3d' %(int(round(body['detailPower'   ]     * 100))))
+	print('   Skin Color:       %s'  %(strRgb(body['skinMainColor'])))
+	print('   Skin Color Sub:   %s'  %(strRgb(body['skinSubColor'])))
+	print('   Skin Gloss:       %3d' %(int(round(body['skinGlossPower']     * 100))))
+	print('Chest:')
+	print('   Breast Size:      %3d' %(int(round(body['shapeValueBody'][ 4] * 100))))
+	print('   Breast Ver Pos:   %3d' %(int(round(body['shapeValueBody'][ 5] * 100))))
+	print('   Breast Spacing:   %3d' %(int(round(body['shapeValueBody'][ 6] * 100))))
+	print('   Breast Hor Pos:   %3d' %(int(round(body['shapeValueBody'][ 7] * 100))))
+	print('   Breast Ver Angle: %3d' %(int(round(body['shapeValueBody'][ 8] * 100))))
+	print('   Breast Depth:     %3d' %(int(round(body['shapeValueBody'][ 9] * 100))))
+	print('   Breast Roundness: %3d' %(int(round(body['shapeValueBody'][10] * 100))))
+	print('   Breast Softness:  %3d' %(int(round(body['bustSoftness'  ]     * 100))))
+	print('   Breast Weight:    %3d' %(int(round(body['bustWeight'    ]     * 100))))
+	print('   Areola Depth:     %3d' %(int(round(body['shapeValueBody'][11] * 100))))
+	print('   Nipple Thickness: %3d' %(int(round(body['shapeValueBody'][12] * 100))))
+	print('   Nipple Depth:     %3d' %(int(round(body['shapeValueBody'][13] * 100))))
+	print('   Areola Size:      %3d' %(int(round(body['areolaSize'    ]     * 100))))
+	print('   Nipple type:      %3d' %(body['nipId']))
+	print('   Nipple Color:     %s'  %(strRgb(body['nipColor'])))
+	print('   Nipple Gloss:     %3d' %(int(round(body['nipGlossPower']     * 100))))
+	print('Upper Body:')
+	print('   Shoulder Width:        %3d' %(int(round(body['shapeValueBody'][14] * 100))))
+	print('   Shoulder Thickness:    %3d' %(int(round(body['shapeValueBody'][15] * 100))))
+	print('   Upper Torso Width:     %3d' %(int(round(body['shapeValueBody'][16] * 100))))
+	print('   Upper Torso Thickness: %3d' %(int(round(body['shapeValueBody'][17] * 100))))
+	print('   Lower Torso Width:     %3d' %(int(round(body['shapeValueBody'][18] * 100))))
+	print('   Lower Torso Thickness: %3d' %(int(round(body['shapeValueBody'][19] * 100))))
+	print('Lower Body:')
+	print('   Waist Position:  %3d' %(int(round(body['shapeValueBody'][20] * 100))))
+	print('   Belly Thickness: %3d' %(int(round(body['shapeValueBody'][21] * 100))))
+	print('   Waist Width:     %3d' %(int(round(body['shapeValueBody'][22] * 100))))
+	print('   Waist Thickness: %3d' %(int(round(body['shapeValueBody'][23] * 100))))
+	print('   Hip Width:       %3d' %(int(round(body['shapeValueBody'][24] * 100))))
+	print('   Hip Thickness:   %3d' %(int(round(body['shapeValueBody'][25] * 100))))
+	print('   Butt Size:       %3d' %(int(round(body['shapeValueBody'][26] * 100))))
+	print('   Butt Angle:      %3d' %(int(round(body['shapeValueBody'][27] * 100))))
+	print('Arms:')
+	print('   Shoulder Width:      %3d' %(int(round(body['shapeValueBody'][37] * 100))))
+	print('   Shoulder Thickness:  %3d' %(int(round(body['shapeValueBody'][38] * 100))))
+	print('   Upper Arm Width:     %3d' %(int(round(body['shapeValueBody'][39] * 100))))
+	print('   Upper Arm Thickness: %3d' %(int(round(body['shapeValueBody'][40] * 100))))
+	print('   Elbow Thickness:     %3d' %(int(round(body['shapeValueBody'][41] * 100))))
+	print('   Elbow Width:         %3d' %(int(round(body['shapeValueBody'][42] * 100))))
+	print('   Forearm Thickness:   %3d' %(int(round(body['shapeValueBody'][43] * 100))))
+	print('Legs:')
+	print('   Upper Thigh Width:     %3d' %(int(round(body['shapeValueBody'][28] * 100))))
+	print('   Upper Thigh Thickness: %3d' %(int(round(body['shapeValueBody'][29] * 100))))
+	print('   Lower Thigh Width:     %3d' %(int(round(body['shapeValueBody'][30] * 100))))
+	print('   Lower Thigh Thickness: %3d' %(int(round(body['shapeValueBody'][31] * 100))))
+	print('   Knee Width:            %3d' %(int(round(body['shapeValueBody'][32] * 100))))
+	print('   Knee Thickness:        %3d' %(int(round(body['shapeValueBody'][33] * 100))))
+	print('   Calves:                %3d' %(int(round(body['shapeValueBody'][34] * 100))))
+	print('   Ankle Width:           %3d' %(int(round(body['shapeValueBody'][35] * 100))))
+	print('   Ankle Thickness:       %3d' %(int(round(body['shapeValueBody'][36] * 100))))
+	print('Nails:')
+	print('   Nails:   %s'  %(strRgb(body['nailColor'])))
+	print('   Nail Gloss:       %3d' %(int(round(body['nailGlossPower']     * 100))))
+	print('Public Hair:')
+	print('   Type:   %d' % (body['underhairId']))
+	print('   Color:  %s' % (strRgba(body['underhairColor'])))
+	print('Suntan:')
+	print('   Type:   %d' % (body['sunburnId']))
+	print('   Color:  %s' % (strRgba(body['sunburnColor'])))
+	
 
 with open(sys.argv[1], "rb") as input_file:
 	
@@ -168,6 +277,10 @@ with open(sys.argv[1], "rb") as input_file:
 		if kkex:
 			pprint.pprint(kkex, f)
 
+	summerizeParameters(parameter)
+	print()
+	summerizeCoordinate(coordinate)
+	summerizeCustom(custom)
 
 
 	#print(kkex)
