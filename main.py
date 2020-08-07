@@ -62,7 +62,23 @@ def parseCustom(data):
 	
 
 with open(sys.argv[1], "rb") as input_file:
-	WriteFile("main.png", ReadPng(input_file))
+	
+	dumpTextures = True
+	dumpDataBlocks = False
+	
+	def convertTexture(name, data):
+		if dumpTextures:
+			WriteFile(name + '.png', data)
+		return "image md5: " +  hashlib.md5(data).hexdigest()
+		
+	def unpack(data, name=''):
+		unpacked = msgpack.unpackb(data, strict_map_key=False)
+		if dumpDataBlocks and name:
+			WriteFile(name + '.bin', data)
+		return unpacked
+			
+	
+	convertTexture("main", ReadPng(input_file))
 	
 	version = read32u(input_file)
 	
@@ -71,7 +87,7 @@ with open(sys.argv[1], "rb") as input_file:
 	string2len = read32u(input_file)
 	string2 = input_file.read(5)
 	
-	WriteFile("face.png", input_file.read(read32u(input_file)))
+	convertTexture("face", input_file.read(read32u(input_file)))
 	
 	indexes = msgpack.unpackb( input_file.read(read32u(input_file)) )['lstInfo']
 	
@@ -85,70 +101,63 @@ with open(sys.argv[1], "rb") as input_file:
 		pos = index['pos']
 		size = index['size']
 		blocks[index['name']] = data[pos : pos+size]
-	#TODO: Expand 'Custom'
 	
-		
-	print(blocks.keys())
-	kkex = msgpack.unpackb( blocks['KKEx'] )
-	parameter = msgpack.unpackb( blocks['Parameter'] )
-	status = msgpack.unpackb( blocks['Status'] )
-	coordinate = msgpack.unpackb( blocks['Coordinate'] )
 	
-	#WriteFile("custom", blocks['Custom'])
+	parameter  = unpack( blocks['Parameter'], 'Parameter' )
+	status     = unpack( blocks['Status'], 'Status' )
+	coordinate = unpack( blocks['Coordinate'], 'Coordinate' )
 	
 	coordinate = [parseCoordinate( x ) for x in coordinate]
 	custom = parseCustom(blocks['Custom'])
 	
 
-	
-	
-	autoresolver = kkex['com.bepis.sideloader.universalautoresolver'][1]['info']
-	autoresolver = [msgpack.unpackb( val ) for val in autoresolver]
-	kkex['com.bepis.sideloader.universalautoresolver'][1]['info'] = autoresolver
-	
-	
-	kkex = replaceKKex(kkex, 'KKABMPlugin.ABMData', 'boneData')
-	kkex = replaceKKex(kkex, 'madevil.kk.ass', 'CharaTriggerInfo')
-	kkex = replaceKKex(kkex, 'madevil.kk.ass', 'CharaVirtualGroupNames')
-	kkex = replaceKKex(kkex, 'com.deathweasel.bepinex.hairaccessorycustomizer', 'HairAccessories')
-	
-	kkex = replaceKKex(kkex, 'com.deathweasel.bepinex.pushup', 'Pushup_BraData')
-	kkex = replaceKKex(kkex, 'com.deathweasel.bepinex.pushup', 'Pushup_TopData')
-	
-	
-	WriteFile('kkex', blocks['KKEx'])
-	
-	if 'KSOX' in kkex:
-		ksox = kkex['KSOX'][1]
-		for over in ksox:
-			if ksox[over]:
-				WriteFile( over + ".png", ksox[over] )
-				kkex['KSOX'][1][over] = md5(ksox[over])
-	
-	if 'KCOX' in kkex:
-		overlays = msgpack.unpackb(kkex['KCOX'][1]['Overlays'], strict_map_key=False)
-		for overlay in overlays:
-			for key in overlays[overlay]:
-				data = overlays[overlay][key][0]
-				WriteFile("overlays_" + str(overlay) + "_" + str(key) + ".png", data)
-				overlays[overlay][key][0] = md5(data)
-		kkex['KCOX'][1]['Overlays'] = overlays
-	
-	if 'com.deathweasel.bepinex.materialeditor' in kkex:
-		subData = kkex['com.deathweasel.bepinex.materialeditor'][1]
-		if subData['TextureDictionary']:
-			textures = msgpack.unpackb(subData['TextureDictionary'], strict_map_key=False)
-			for texture in textures:
-				WriteFile("materialeditor_" + str(texture) + ".png", textures[texture])
-			md5s = [(x, md5(textures[x])) for x in textures]
-			kkex['com.deathweasel.bepinex.materialeditor'][1]['TextureDictionary'] = md5s
+	kkex = None
+	if 'KKEx' in blocks:
+		kkex       = unpack( blocks['KKEx'], 'KKEx' )
 		
-	kkex = replaceKKex(kkex, 'com.deathweasel.bepinex.materialeditor', 'MaterialShaderList')
-	kkex = replaceKKex(kkex, 'com.deathweasel.bepinex.materialeditor', 'MaterialTexturePropertyList')
-	kkex = replaceKKex(kkex, 'com.deathweasel.bepinex.materialeditor', 'MaterialFloatPropertyList')
-	kkex = replaceKKex(kkex, 'com.deathweasel.bepinex.materialeditor', 'MaterialColorPropertyList')
-	
-	kkex = replaceKKex(kkex, 'marco.authordata', 'Authors')
+		autoresolver = kkex['com.bepis.sideloader.universalautoresolver'][1]['info']
+		autoresolver = [unpack( val ) for val in autoresolver]
+		kkex['com.bepis.sideloader.universalautoresolver'][1]['info'] = autoresolver
+		
+		
+		kkex = replaceKKex(kkex, 'KKABMPlugin.ABMData', 'boneData')
+		kkex = replaceKKex(kkex, 'madevil.kk.ass', 'CharaTriggerInfo')
+		kkex = replaceKKex(kkex, 'madevil.kk.ass', 'CharaVirtualGroupNames')
+		kkex = replaceKKex(kkex, 'com.deathweasel.bepinex.hairaccessorycustomizer', 'HairAccessories')
+		
+		kkex = replaceKKex(kkex, 'com.deathweasel.bepinex.pushup', 'Pushup_BraData')
+		kkex = replaceKKex(kkex, 'com.deathweasel.bepinex.pushup', 'Pushup_TopData')
+		
+		
+		if 'KSOX' in kkex:
+			ksox = kkex['KSOX'][1]
+			for over in ksox:
+				if ksox[over]:
+					kkex['KSOX'][1][over] = convertTexture(over, ksox[over])
+		
+		if 'KCOX' in kkex:
+			overlays = msgpack.unpackb(kkex['KCOX'][1]['Overlays'], strict_map_key=False)
+			for overlay in overlays:
+				for key in overlays[overlay]:
+					data = overlays[overlay][key][0]
+					overlays[overlay][key][0] = convertTexture("overlays_" + str(overlay) + "_" + str(key), data)
+			kkex['KCOX'][1]['Overlays'] = overlays
+		
+		if 'com.deathweasel.bepinex.materialeditor' in kkex:
+			subData = kkex['com.deathweasel.bepinex.materialeditor'][1]
+			if subData['TextureDictionary']:
+				textures = msgpack.unpackb(subData['TextureDictionary'], strict_map_key=False)
+				for texture in textures:
+					convertTexture("materialeditor_" + str(texture), textures[texture])
+				md5s = [(x, md5(textures[x])) for x in textures]
+				kkex['com.deathweasel.bepinex.materialeditor'][1]['TextureDictionary'] = md5s
+			
+		kkex = replaceKKex(kkex, 'com.deathweasel.bepinex.materialeditor', 'MaterialShaderList')
+		kkex = replaceKKex(kkex, 'com.deathweasel.bepinex.materialeditor', 'MaterialTexturePropertyList')
+		kkex = replaceKKex(kkex, 'com.deathweasel.bepinex.materialeditor', 'MaterialFloatPropertyList')
+		kkex = replaceKKex(kkex, 'com.deathweasel.bepinex.materialeditor', 'MaterialColorPropertyList')
+		
+		kkex = replaceKKex(kkex, 'marco.authordata', 'Authors')
 	
 	
 	with open(filePrefix() + "settings.txt", "w") as f:
@@ -156,7 +165,8 @@ with open(sys.argv[1], "rb") as input_file:
 		pprint.pprint(status, f)
 		pprint.pprint(custom, f)
 		pprint.pprint(coordinate, f)
-		pprint.pprint(kkex, f)
+		if kkex:
+			pprint.pprint(kkex, f)
 
 
 
