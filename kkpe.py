@@ -3,12 +3,15 @@ import sys
 import msgpack
 import struct
 import pprint
+import io
 
 import hashlib
 
+def filePrefix():
+	return sys.argv[1][:-4] + "_"
+
 def WriteFile(path, data):
-	prefix = sys.argv[1][:-4] + "_"
-	with open(prefix + path, "wb") as newFile:
+	with open(filePrefix() + path, "wb") as newFile:
 		newFile.write(data)
 
 def ReadPng(file):
@@ -28,7 +31,7 @@ def ReadPng(file):
 	return png
 
 def read32u(file):
-	return struct.unpack('<i', input_file.read(4))[0]
+	return struct.unpack('<i', file.read(4))[0]
 	
 def md5(data):
 	return "image md5: " +  hashlib.md5(data).hexdigest()
@@ -36,8 +39,26 @@ def md5(data):
 def replaceKKex(kkex, mod, entry):
 	if mod in kkex and kkex[mod]:
 		if entry in kkex[mod][1] and kkex[mod][1][entry]:
-			kkex[mod][1][entry] = msgpack.unpackb(kkex[mod][1][entry], strict_map_key=False)
+			if type(kkex[mod][1][entry]) is bytes:
+				kkex[mod][1][entry] = msgpack.unpackb(kkex[mod][1][entry], strict_map_key=False)
 	return kkex
+	
+def parseCoordinate(data):
+	f = io.BytesIO(data)
+	
+	block1 = msgpack.unpackb( f.read(read32u(f)) )
+	block2 = msgpack.unpackb( f.read(read32u(f)) )
+	padding = f.read(1)
+	block3 = msgpack.unpackb( f.read(read32u(f)) )
+	return (block1, block2, padding, block3)
+	
+def parseCustom(data):
+	f = io.BytesIO(data)
+	
+	block1 = msgpack.unpackb( f.read(read32u(f)) )
+	block2 = msgpack.unpackb( f.read(read32u(f)) )
+	block3 = msgpack.unpackb( f.read(read32u(f)) )
+	return (block1, block2, block3)
 	
 
 with open(sys.argv[1], "rb") as input_file:
@@ -67,7 +88,18 @@ with open(sys.argv[1], "rb") as input_file:
 	#TODO: Expand 'Custom'
 	
 		
+	print(blocks.keys())
 	kkex = msgpack.unpackb( blocks['KKEx'] )
+	parameter = msgpack.unpackb( blocks['Parameter'] )
+	status = msgpack.unpackb( blocks['Status'] )
+	coordinate = msgpack.unpackb( blocks['Coordinate'] )
+	
+	#WriteFile("custom", blocks['Custom'])
+	
+	coordinate = [parseCoordinate( x ) for x in coordinate]
+	custom = parseCustom(blocks['Custom'])
+	
+
 	
 	
 	autoresolver = kkex['com.bepis.sideloader.universalautoresolver'][1]['info']
@@ -86,36 +118,47 @@ with open(sys.argv[1], "rb") as input_file:
 	
 	WriteFile('kkex', blocks['KKEx'])
 	
-	ksox = kkex['KSOX'][1]
-	for over in ksox:
-		if ksox[over]:
-			WriteFile( over + ".png", ksox[over] )
-			kkex['KSOX'][1][over] = md5(ksox[over])
+	if 'KSOX' in kkex:
+		ksox = kkex['KSOX'][1]
+		for over in ksox:
+			if ksox[over]:
+				WriteFile( over + ".png", ksox[over] )
+				kkex['KSOX'][1][over] = md5(ksox[over])
 	
-	overlays = msgpack.unpackb(kkex['KCOX'][1]['Overlays'], strict_map_key=False)
-	for overlay in overlays:
-		for key in overlays[overlay]:
-			data = overlays[overlay][key][0]
-			WriteFile("overlays_" + str(overlay) + "_" + str(key) + ".png", data)
-			overlays[overlay][key][0] = md5(data)
-	kkex['KCOX'][1]['Overlays'] = overlays
+	if 'KCOX' in kkex:
+		overlays = msgpack.unpackb(kkex['KCOX'][1]['Overlays'], strict_map_key=False)
+		for overlay in overlays:
+			for key in overlays[overlay]:
+				data = overlays[overlay][key][0]
+				WriteFile("overlays_" + str(overlay) + "_" + str(key) + ".png", data)
+				overlays[overlay][key][0] = md5(data)
+		kkex['KCOX'][1]['Overlays'] = overlays
 	
-	subData = kkex['com.deathweasel.bepinex.materialeditor'][1]
-	if subData['TextureDictionary']:
-		textures = msgpack.unpackb(subData['TextureDictionary'], strict_map_key=False)
-		for texture in textures:
-			WriteFile("materialeditor_" + str(texture) + ".png", textures[texture])
-		md5s = [(x, md5(textures[x])) for x in textures]
-		kkex['com.deathweasel.bepinex.materialeditor'][1]['TextureDictionary'] = md5s
+	if 'com.deathweasel.bepinex.materialeditor' in kkex:
+		subData = kkex['com.deathweasel.bepinex.materialeditor'][1]
+		if subData['TextureDictionary']:
+			textures = msgpack.unpackb(subData['TextureDictionary'], strict_map_key=False)
+			for texture in textures:
+				WriteFile("materialeditor_" + str(texture) + ".png", textures[texture])
+			md5s = [(x, md5(textures[x])) for x in textures]
+			kkex['com.deathweasel.bepinex.materialeditor'][1]['TextureDictionary'] = md5s
 		
 	kkex = replaceKKex(kkex, 'com.deathweasel.bepinex.materialeditor', 'MaterialShaderList')
 	kkex = replaceKKex(kkex, 'com.deathweasel.bepinex.materialeditor', 'MaterialTexturePropertyList')
 	kkex = replaceKKex(kkex, 'com.deathweasel.bepinex.materialeditor', 'MaterialFloatPropertyList')
+	kkex = replaceKKex(kkex, 'com.deathweasel.bepinex.materialeditor', 'MaterialColorPropertyList')
 	
 	kkex = replaceKKex(kkex, 'marco.authordata', 'Authors')
 	
 	
-	pprint.pprint(kkex)
+	with open(filePrefix() + "settings.txt", "w") as f:
+		pprint.pprint(parameter, f)
+		pprint.pprint(status, f)
+		pprint.pprint(custom, f)
+		pprint.pprint(coordinate, f)
+		pprint.pprint(kkex, f)
+
+
 
 	#print(kkex)
 	
