@@ -76,6 +76,19 @@ def strShow(value):
 def slider(value):
 	return int(round(value * 100))
 	
+def printCharaSettings(block):
+	for key, group in block.items():
+		if verbose:
+			if (len(group.keys())):
+				print('%s:' % key)
+				length = max([len(key) for key in group.keys()])
+				for key, value in group.items():
+					padding = (length - len(key)) * ' '
+					print('\t%s: %s%s' % (key, padding, str(value)))
+		else:
+			if len(group) > 0:
+				print(key + ': ' + '; '.join([str(val) for val in group.values()]))
+	
 def summerizeParameters(para):
 	print('Name: %s %s  (%s)' % (para['firstname'], para['lastname'], para['nickname']))
 	print('Birthday: %d/%d (month/date)' % (para['birthDay'], para['birthMonth']))
@@ -119,7 +132,7 @@ def summerizeEye(eye):
 def summerizePaint(makeup, id):
 	if hideEmpty and makeup['paintId'    ][id] == 0:
 		return {}
-	return {
+	block = {
 			'Type'       :          makeup['paintId'    ][id] ,
 			'Color'      : strRgba( makeup['paintColor' ][id]),
 			'Hor'        : slider(  makeup['paintLayout'][id][0]),
@@ -127,6 +140,9 @@ def summerizePaint(makeup, id):
 			'Rot'        : slider(  makeup['paintLayout'][id][2]),
 			'Size'       : slider(  makeup['paintLayout'][id][3]),
 		}
+	if 'paintLayoutId' in makeup:
+		block['PosId'] = slider( makeup['paintLayoutId'][id] )
+	return block
 		
 def summerizeFace(face):
 	values = [slider(x) for x in face['shapeValueFace']]
@@ -255,89 +271,102 @@ def summerizeFace(face):
 	if hideEmpty and block['Mole']['Type'] == 0:
 		block['Mole'] = {}
 	
-	for key, group in block.items():
-		if verbose:
-			print('%s:' % key)
-			if (len(group.keys())):
-				length = max([len(key) for key in group.keys()])
-				for key, value in group.items():
-					padding = (length - len(key)) * ' '
-					print('\t%s: %s%s' % (key, padding, str(value)))
-		else:
-			print(key + ': ' + '; '.join([str(val) for val in group.values()]))
+	printCharaSettings(block)
 
 
 def summerizeBody(body):
-	print('Body General:')
-	print('   Body Height:      %3d' %(int(round(body['shapeValueBody'][ 0] * 100))))
-	print('   Head Size:        %3d' %(int(round(body['shapeValueBody'][ 1] * 100))))
-	print('   Neck Width:       %3d' %(int(round(body['shapeValueBody'][ 2] * 100))))
-	print('   Neck Thickness:   %3d' %(int(round(body['shapeValueBody'][ 3] * 100))))
-	print('   Skin Type:        %3d' %(body['detailId']))
-	print('   Skin Strenght:    %3d' %(int(round(body['detailPower'   ]     * 100))))
-	print('   Skin Color:       %s'  %(strRgb(body['skinMainColor'])))
-	print('   Skin Color Sub:   %s'  %(strRgb(body['skinSubColor'])))
-	print('   Skin Gloss:       %3d' %(int(round(body['skinGlossPower']     * 100))))
-	print('Chest:')
-	print('   Breast Size:      %3d' %(slider(body['shapeValueBody'][ 4])))
-	print('   Breast Ver Pos:   %3d' %(slider(body['shapeValueBody'][ 5])))
-	print('   Breast Spacing:   %3d' %(slider(body['shapeValueBody'][ 6])))
-	print('   Breast Hor Pos:   %3d' %(slider(body['shapeValueBody'][ 7])))
-	print('   Breast Ver Angle: %3d' %(slider(body['shapeValueBody'][ 8])))
-	print('   Breast Depth:     %3d' %(slider(body['shapeValueBody'][ 9])))
-	print('   Breast Roundness: %3d' %(slider(body['shapeValueBody'][10])))
-	print('   Breast Softness:  %3d' %(slider(body['bustSoftness'  ]    )))
-	print('   Breast Weight:    %3d' %(slider(body['bustWeight'    ]    )))
-	print('   Areola Depth:     %3d' %(slider(body['shapeValueBody'][11])))
-	print('   Nipple Thickness: %3d' %(slider(body['shapeValueBody'][12])))
-	print('   Nipple Depth:     %3d' %(slider(body['shapeValueBody'][13])))
-	print('   Areola Size:      %3d' %(slider(body['areolaSize'    ]    )))
-	print('   Nipple type:      %3d' %(       body['nipId'         ] ))
-	print('   Nipple Color:     %s'  %(strRgb(body['nipColor'      ])))
-	print('   Nipple Gloss:     %3d' %(slider(body['nipGlossPower' ])))
-	print('Upper Body:')
-	print('   Shoulder Width:        %3d' %(int(round(body['shapeValueBody'][14] * 100))))
-	print('   Shoulder Thickness:    %3d' %(int(round(body['shapeValueBody'][15] * 100))))
-	print('   Upper Torso Width:     %3d' %(int(round(body['shapeValueBody'][16] * 100))))
-	print('   Upper Torso Thickness: %3d' %(int(round(body['shapeValueBody'][17] * 100))))
-	print('   Lower Torso Width:     %3d' %(int(round(body['shapeValueBody'][18] * 100))))
-	print('   Lower Torso Thickness: %3d' %(int(round(body['shapeValueBody'][19] * 100))))
-	print('Lower Body:')
-	print('   Waist Position:  %3d' %(slider(body['shapeValueBody'][20])))
-	print('   Belly Thickness: %3d' %(slider(body['shapeValueBody'][21])))
-	print('   Waist Width:     %3d' %(slider(body['shapeValueBody'][22])))
-	print('   Waist Thickness: %3d' %(slider(body['shapeValueBody'][23])))
-	print('   Hip Width:       %3d' %(slider(body['shapeValueBody'][24])))
-	print('   Hip Thickness:   %3d' %(slider(body['shapeValueBody'][25])))
-	print('   Butt Size:       %3d' %(slider(body['shapeValueBody'][26])))
-	print('   Butt Angle:      %3d' %(slider(body['shapeValueBody'][27])))
-	print('Arms:')
-	print('   Shoulder Width:      %3d' %(slider(body['shapeValueBody'][37])))
-	print('   Shoulder Thickness:  %3d' %(slider(body['shapeValueBody'][38])))
-	print('   Upper Arm Width:     %3d' %(slider(body['shapeValueBody'][39])))
-	print('   Upper Arm Thickness: %3d' %(slider(body['shapeValueBody'][40])))
-	print('   Elbow Thickness:     %3d' %(slider(body['shapeValueBody'][41])))
-	print('   Elbow Width:         %3d' %(slider(body['shapeValueBody'][42])))
-	print('   Forearm Thickness:   %3d' %(slider(body['shapeValueBody'][43])))
-	print('Legs:')
-	print('   Upper Thigh Width:     %3d' %(slider(body['shapeValueBody'][28])))
-	print('   Upper Thigh Thickness: %3d' %(slider(body['shapeValueBody'][29])))
-	print('   Lower Thigh Width:     %3d' %(slider(body['shapeValueBody'][30])))
-	print('   Lower Thigh Thickness: %3d' %(slider(body['shapeValueBody'][31])))
-	print('   Knee Width:            %3d' %(slider(body['shapeValueBody'][32])))
-	print('   Knee Thickness:        %3d' %(slider(body['shapeValueBody'][33])))
-	print('   Calves:                %3d' %(slider(body['shapeValueBody'][34])))
-	print('   Ankle Width:           %3d' %(slider(body['shapeValueBody'][35])))
-	print('   Ankle Thickness:       %3d' %(slider(body['shapeValueBody'][36])))
-	print('Nails:')
-	print('   Nails:   %s'  %(strRgb(body['nailColor'])))
-	print('   Nail Gloss:       %3d' %(int(round(body['nailGlossPower']     * 100))))
-	print('Public Hair:')
-	print('   Type:   %d' % (body['underhairId']))
-	print('   Color:  %s' % (strRgba(body['underhairColor'])))
-	print('Suntan:')
-	print('   Type:   %d' % (body['sunburnId']))
-	print('   Color:  %s' % (strRgba(body['sunburnColor'])))
+	values = [slider(x) for x in body['shapeValueBody']]
+	block = {
+		'Body General' : {
+				'Body Height:      ' : values[ 0],
+				'Head Size:        ' : values[ 1],
+				'Neck Width:       ' : values[ 2],
+				'Neck Thickness:   ' : values[ 3],
+				'Skin Type:        ' :        body['detailId'      ] ,
+				'Skin Strenght:    ' : slider(body['detailPower'   ]),
+				'Skin Color:       ' : strRgb(body['skinMainColor' ]),
+				'Skin Color Sub:   ' : strRgb(body['skinSubColor'  ]),
+				'Skin Gloss:       ' : slider(body['skinGlossPower']),
+		},
+		'Chest' : {
+				'Breast Size:    ' : values[ 4],
+				'Breast Ver Pos: ' : values[ 5],
+				'Breast Spacing: ' : values[ 6],
+				'Breast Hor Pos: ' : values[ 7],
+				'Breast Ver Angle' : values[ 8],
+				'Breast Depth:   ' : values[ 9],
+				'Breast Roundness' : values[10],
+				'Breast Softness:' : slider(body['bustSoftness'  ]),
+				'Breast Weight:  ' : slider(body['bustWeight'    ]),
+				'Areola Depth:   ' : values[11],
+				'Nipple Thickness' : values[12],
+				'Nipple Depth:   ' : values[13],
+				'Areola Size:    ' : slider(body['areolaSize'    ]),
+				'Nipple type:    ' :        body['nipId'         ] ,
+				'Nipple Color:   ' : strRgb(body['nipColor'      ]),
+				'Nipple Gloss:   ' : slider(body['nipGlossPower' ]),
+		},
+		'Upper Body' : {
+				'Shoulder Width:      ' : values[14],
+				'Shoulder Thickness:  ' : values[15],
+				'Upper Torso Width:   ' : values[16],
+				'Upper Torso Thickness' : values[17],
+				'Lower Torso Width:   ' : values[18],
+				'Lower Torso Thickness' : values[19],
+		},
+		'Lower Body' : {
+				'Waist Position:' : values[20],
+				'Belly Thickness' : values[21],
+				'Waist Width:   ' : values[22],
+				'Waist Thickness' : values[23],
+				'Hip Width:     ' : values[24],
+				'Hip Thickness: ' : values[25],
+				'Butt Size:     ' : values[26],
+				'Butt Angle:    ' : values[27],
+		},
+		'Arms' : {
+				'Shoulder Width:    ' : values[37],
+				'Shoulder Thickness:' : values[38],
+				'Upper Arm Width:   ' : values[39],
+				'Upper Arm Thickness' : values[40],
+				'Elbow Thickness:   ' : values[41],
+				'Elbow Width:       ' : values[42],
+				'Forearm Thickness: ' : values[43],
+		},
+		'Legs' : {
+				'Upper Thigh Width:   ' : values[28],
+				'Upper Thigh Thickness' : values[29],
+				'Lower Thigh Width:   ' : values[30],
+				'Lower Thigh Thickness' : values[31],
+				'Knee Width:          ' : values[32],
+				'Knee Thickness:      ' : values[33],
+				'Calves:              ' : values[34],
+				'Ankle Width:         ' : values[35],
+				'Ankle Thickness:     ' : values[36],
+		},
+		'Nails' : {
+				'Nails'      : strRgb(body['nailColor'     ]),
+				'Nail Gloss' : slider(body['nailGlossPower']),
+		},
+		'Public Hair' : {
+				'Type'  :         body['underhairId'   ] ,
+				'Color' : strRgba(body['underhairColor']),
+		},
+		'Suntan' : {
+				'Type'  :         body['sunburnId'   ] ,
+				'Color' : strRgba(body['sunburnColor']),
+		},
+		'Paint 01': summerizePaint(body, 0),
+		'Paint 02': summerizePaint(body, 1),
+	}
+	
+	if hideEmpty:
+		if block['Suntan']['Type'] == 0:
+			block['Suntan'] = {}
+		if block['Public Hair']['Type'] == 0:
+			block['Public Hair'] = {}
+	
+	printCharaSettings(block)
 		
 def summerizeCustom(para):
 	face, body, extra = para
