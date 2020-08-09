@@ -106,7 +106,7 @@ def isAdded():
 	return colorama.Fore.RED + '+ ' + colorama.Fore.WHITE
 	
 def isRemoved():
-	return colorama.Fore.RED + '+ ' + colorama.Fore.WHITE
+	return colorama.Fore.RED + '- ' + colorama.Fore.WHITE
 	
 def compareItem(A, B):
 	if A['id'] == 0 and B['id'] == 0:
