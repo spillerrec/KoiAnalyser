@@ -135,34 +135,57 @@ class KoiCharaFile:
 		
 	def getClothesNames(self):
 		return ['In School', 'Going Home', 'Gym Uniform', 'Swimsuit', 'Club Activities', 'Casual Clothes', 'Sleeping Over']
-		
-	def summerizeCoordinateSub(self, para, out):
+	
+	def parseColorTile(self, colorInfo):
+		block = {
+			'color'   : strRgb(colorInfo['baseColor']),
+			'pattern' : colorInfo['pattern'],
+			'tiling'  : colorInfo['tiling'],
+			'color2'  : strRgb(colorInfo['patternColor']),
+		}
+		if self.hideEmpty and block['pattern'] == 0:
+			return block['color']
+		else:
+			return block
+	
+	def summerizeCoordinateSub(self, para):
 		part1, part2, unknown, extras = para
 		
-		names = ['Top   ', 'Bottom', 'Bra   ', 'Underwear', 'Gloves', 'Pantyhose', 'Legwear', 'In Shoes', 'Out Shoes']
+		names = ['Top', 'Bottom', 'Bra', 'Underwear', 'Gloves', 'Pantyhose', 'Legwear', 'In Shoes', 'Out Shoes']
 		
+		clothes = {}
 		for info, name in zip(part1['parts'], names):
-			if info['id'] != 0:
-				colors = '; '.join([strRgb(color['baseColor']) for color in info['colorInfo']])
-				print('   %s\t- id %d - %s' % (name, info['id'], str(colors)), file=out)
-			
-			
-		print('   Accessories:', file=out)
+			if not (self.hideEmpty and info['id']==0):
+				clothes[name] = {
+					'id' : info['id'],
+					'colors' : [ self.parseColorTile(color) for color in info['colorInfo'] ],
+					'emblemeId' : info['emblemeId']
+				}
+		
+		accesories = []
 		for index, part in enumerate(part2['parts']):
-			id = part['id']
-			if id != 0:
-				adjust = part['addMove'][2]
-				pos   = '%.2f %.2f %.2f' % (adjust[0][0], adjust[0][1], adjust[0][2])
-				rot   = '%.2f %.2f %.2f' % (adjust[1][0], adjust[1][1], adjust[1][2])
-				scale = '%.2f %.2f %.2f' % (adjust[2][0], adjust[2][1], adjust[2][2])
-				print('      %2d: id %4d - type %d - %s - %s - %s' % (index, part['id'], part['type'], pos, rot, scale), file=out)
+			accessory = {
+				'id'     : part['id'],
+				'pos'    : part['addMove'][2][0],
+				'rot'    : part['addMove'][2][1],
+				'scale'  : part['addMove'][2][2],
+				'colors' : [strRgba(c) for c in part['color']]
+			}
+			if accessory['id'] == 0 and self.hideEmpty:
+				accessory = {}
+			accesories.append( accessory )
 		
-	def summerizeCoordinate(self, para, out):
+		return {
+				'Clothes' : clothes,
+				'Accessories' : accesories
+			}
+		
+	def summerizeCoordinate(self, para):
 		names = self.getClothesNames()
-		
+		block = {}
 		for name, subPara in zip(names, para):
-			print(name, file=out)
-			self.summerizeCoordinateSub(subPara, out)
+			block[name] = self.summerizeCoordinateSub(subPara)
+		return block
 			
 	def summerizeEye(self, eye):
 		return {
@@ -174,6 +197,7 @@ class KoiCharaFile:
 			'Gradient Vertical' : slider(eye['gradOffsetY']),
 			'Gradient Size'     : slider(eye['gradScale'  ])
 		}
+		
 	def summerizePaint(self, makeup, id):
 		if self.hideEmpty and makeup['paintId'    ][id] == 0:
 			return {}
@@ -317,8 +341,7 @@ class KoiCharaFile:
 			block['Mole'] = {}
 		
 		return block
-
-
+		
 	def summerizeBody(self, body):
 		values = [slider(x) for x in body['shapeValueBody']]
 		block = {
@@ -419,10 +442,28 @@ class KoiCharaFile:
 				'Face': self.summerizeFace(face),
 				'Body': self.summerizeBody(body),
 			}
+			
 	def printCustom(self, block, out):
 		self.printCharaSettings(block['Face'], out)
 		print('', file=out)
 		self.printCharaSettings(block['Body'], out)
+			
+	def printAccessory(self, accessory, out):
+		pos   = '%.1f %.1f %.1f' % (accessory['pos'][0], accessory['pos'][1], accessory['pos'][2])
+		rot   = '%.0f %.0f %.0f' % (accessory['rot'][0], accessory['rot'][1], accessory['rot'][2])
+		scale = '%.2f %.2f %.2f' % (accessory['scale'][0], accessory['scale'][1], accessory['scale'][2])
+		print('\tAccessory %4d: - %s - %s - %s - %s' % (accessory['id'], pos, rot, scale, '; '.join(accessory['colors'])), file=out)
+		
+	def printCoordinate(self, block, out):
+		for key, value in block.items():
+			print(key + ':', file=out)
+			for part, settings in value['Clothes'].items():
+				print('\t' + part + ': ' + str(settings), file=out)
+			
+			for index, settings in enumerate(value['Accessories']):
+				if settings:
+					self.printAccessory(settings, out)
+					#print('Accesory %2d: ' % (index) + str(settings), file=out)
 		
 
 	def parseFile(self):
@@ -538,11 +579,12 @@ class KoiCharaFile:
 
 		self.summery['Parameter'] = self.summerizeParameters(self.raw['Parameter'])
 		self.summery['Custom'] = self.summerizeCustom(custom)
+		self.summery['Coordinate'] = self.summerizeCoordinate(coordinate)
 		
 	def printSummery(self, out = sys.stdout):
 		self.printCharaSettings(self.summery['Parameter'], out)
 		print('', file=out)
-		self.summerizeCoordinate(self.raw['Coordinate'], out)
+		self.printCoordinate(self.summery['Coordinate'], out)
 		print('', file=out)
 		self.printCustom(self.summery['Custom'], out)
 		
