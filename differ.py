@@ -109,17 +109,20 @@ def isRemoved():
 	return colorama.Fore.RED + '- ' + colorama.Fore.WHITE
 	
 def compareItem(A, B):
-	if A['id'] == 0 and B['id'] == 0:
+	def exists(item):
+		return ('id' in item) and (item['id'] != 0)
+	
+	if not exists(A) and not exists(B):
 		return '  '
+	elif exists(B) and not exists(A):
+		return isAdded()
+	elif exists(A) and not exists(B):
+		return isRemoved()
 	elif A['id'] == B['id']:
 		if A == B:
 			return isSame()
 		else:
 			return isSimilar()
-	elif A['id'] == 0:
-		return isAdded()
-	elif B['id'] == 0:
-		return isRemoved()
 	else:
 		return isDifferent()
 		
