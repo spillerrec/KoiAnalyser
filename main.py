@@ -11,6 +11,8 @@ def read32u(file):
 	return struct.unpack('<i', file.read(4))[0]
 	
 def md5(data):
+	if not data:
+		return "no image"
 	return "image md5: " +  hashlib.md5(data).hexdigest()
 
 
@@ -473,7 +475,7 @@ class KoiCharaFile:
 			def convertTexture(name, data):
 				if self.dumpTextures:
 					WriteFile(name + '.png', data)
-				return "image md5: " +  hashlib.md5(data).hexdigest()
+				return md5(data)
 				
 			def unpack(data, name=''):
 				unpacked = msgpack.unpackb(data, strict_map_key=False)
@@ -569,7 +571,7 @@ class KoiCharaFile:
 				'KKex' : kkex
 			}
 		
-		with open(self.filePrefix() + "settings.txt", "w") as f:
+		with open(self.filePrefix() + "settings.txt", "w", encoding="utf-8") as f:
 			pprint.pprint(parameter, f)
 			pprint.pprint(status, f)
 			pprint.pprint(custom, f)
